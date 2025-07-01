@@ -4,6 +4,15 @@ import sys
 
 class SimplexSolver:
     def __init__(self, c, A, b, senses, optimize='max', verbose=False):
+        filtered = []
+        for row, s, bi in zip(A, senses, b):
+            nz = [i for i, coeff in enumerate(row) if abs(coeff) > 1e-8]
+            if s == '>=' and abs(bi) < 1e-8 and len(nz) == 1 and abs(row[nz[0]] -1) < 1e-8:
+                continue
+            filtered.append((row, s, bi))
+        if len(filtered) < len(A):
+            A, senses, b = zip(*filtered)
+            A, senses, b = list(A), list(senses), list(b)
         self.c = np.array(c, dtype=float)
         self.A = np.array(A, dtype=float)
         self.b = np.array(b, dtype=float)
@@ -12,7 +21,7 @@ class SimplexSolver:
         self.verbose = verbose
         if self.optimize not in ('max', 'min'):
             raise ValueError("otimizacao deve ser 'max' ou 'min'.")
-        if self.optimize == 'min':  # convert min to max
+        if self.optimize == 'min':
             self.c = -self.c
         self._build_tableau()
 
@@ -116,8 +125,8 @@ class SimplexSolver:
                 if self.verbose: print("problema ilimitado")
                 return 'unbounded'
             ratio, pivot_row = min(valid)
+            self.iterations += 1
             if self.verbose:
-                self.iterations += 1
                 print(f"\n[+] iteracao {self.iterations} (Fase {phase}):")
                 print(f"variavel entra: coluna {ent}, sai: linha {pivot_row}")
                 print(self.tableau)
